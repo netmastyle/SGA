@@ -1,0 +1,399 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// NOTE: SQL Server connector does not support native Prisma enums.
+// Enumerated values are modeled as String columns; valid values are
+// validated at the application layer (see src/common/enums.ts).
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Multi-tenant core
+// ---------------------------------------------------------------------------
+
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  taxId     String    @map("tax_id")
+  address   String?
+  logoUrl   String?   @map("logo_url")
+  status    String    @default("ACTIVE")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  users      User[]
+  roles      Role[]
+  warehouses Warehouse[]
+  items      Item[]
+
+  @@unique([taxId])
+  @@map("companies")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  companyId    String    @map("company_id")
+  email        String
+  passwordHash String    @map("password_hash")
+  name         String
+  status       String    @default("ACTIVE")
+  roleId       String    @map("role_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([companyId, email])
+  @@index([companyId])
+  @@map("users")
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  companyId String?  @map("company_id")
+  name      String
+  isSystem  Boolean  @default(false) @map("is_system")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  company     Company?         @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users       User[]
+  permissions RolePermission[]
+
+  @@unique([companyId, name])
+  @@map("roles")
+}
+
+model Permission {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  description String?
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ---------------------------------------------------------------------------
+// Warehouse topology: Company -> Warehouse -> Zone -> Aisle -> Rack -> Level -> Location
+// ---------------------------------------------------------------------------
+
+model Warehouse {
+  id          String    @id @default(cuid())
+  companyId   String    @map("company_id")
+  code        String
+  name        String
+  address     String?
+  manager     String?
+  description String?
+  lengthM     Decimal?  @map("length_m") @db.Decimal(10, 2)
+  widthM      Decimal?  @map("width_m") @db.Decimal(10, 2)
+  heightM     Decimal?  @map("height_m") @db.Decimal(10, 2)
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  zones         Zone[]
+  handlingUnits HandlingUnit[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@map("warehouses")
+}
+
+model Zone {
+  id           String    @id @default(cuid())
+  companyId    String    @map("company_id")
+  warehouseId  String    @map("warehouse_id")
+  code         String
+  name         String
+  type         String    @default("NORMAL")
+  minTemp      Decimal?  @map("min_temp") @db.Decimal(5, 2)
+  maxTemp      Decimal?  @map("max_temp") @db.Decimal(5, 2)
+  minHumidity  Decimal?  @map("min_humidity") @db.Decimal(5, 2)
+  maxHumidity  Decimal?  @map("max_humidity") @db.Decimal(5, 2)
+  restrictions String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  aisles    Aisle[]
+
+  @@unique([warehouseId, code])
+  @@index([companyId])
+  @@map("zones")
+}
+
+model Aisle {
+  id            String    @id @default(cuid())
+  companyId     String    @map("company_id")
+  zoneId        String    @map("zone_id")
+  code          String
+  axis          String    @default("X")
+  startX        Decimal?  @map("start_x") @db.Decimal(10, 2)
+  startY        Decimal?  @map("start_y") @db.Decimal(10, 2)
+  lengthM       Decimal?  @map("length_m") @db.Decimal(10, 2)
+  widthM        Decimal?  @map("width_m") @db.Decimal(10, 2)
+  hasLeftRacks  Boolean   @default(false) @map("has_left_racks")
+  hasRightRacks Boolean   @default(false) @map("has_right_racks")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  zone  Zone   @relation(fields: [zoneId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  racks Rack[]
+
+  @@unique([zoneId, code])
+  @@index([companyId])
+  @@map("aisles")
+}
+
+model Rack {
+  id            String    @id @default(cuid())
+  companyId     String    @map("company_id")
+  aisleId       String    @map("aisle_id")
+  code          String
+  type          String    @default("CONVENTIONAL")
+  side          String    @default("LEFT")
+  offsetM       Decimal?  @map("offset_m") @db.Decimal(10, 2)
+  columns       Int       @default(1)
+  levelsCount   Int       @default(1) @map("levels_count")
+  moduleLengthM Decimal?  @map("module_length_m") @db.Decimal(10, 2)
+  moduleWidthM  Decimal?  @map("module_width_m") @db.Decimal(10, 2)
+  moduleHeightM Decimal?  @map("module_height_m") @db.Decimal(10, 2)
+  maxLoadKg     Decimal?  @map("max_load_kg") @db.Decimal(10, 2)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  aisle  Aisle   @relation(fields: [aisleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  levels Level[]
+
+  @@unique([aisleId, code])
+  @@index([companyId])
+  @@map("racks")
+}
+
+model Level {
+  id               String    @id @default(cuid())
+  companyId        String    @map("company_id")
+  rackId           String    @map("rack_id")
+  levelNumber      Int       @map("level_number")
+  heightFromFloorM Decimal?  @map("height_from_floor_m") @db.Decimal(10, 2)
+  clearHeightM     Decimal?  @map("clear_height_m") @db.Decimal(10, 2)
+  maxLoadKg        Decimal?  @map("max_load_kg") @db.Decimal(10, 2)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  rack      Rack       @relation(fields: [rackId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  locations Location[]
+
+  @@unique([rackId, levelNumber])
+  @@index([companyId])
+  @@map("levels")
+}
+
+model Location {
+  id            String    @id @default(cuid())
+  companyId     String    @map("company_id")
+  warehouseId   String    @map("warehouse_id")
+  levelId       String    @map("level_id")
+  code          String
+  maxLengthM    Decimal?  @map("max_length_m") @db.Decimal(10, 2)
+  maxWidthM     Decimal?  @map("max_width_m") @db.Decimal(10, 2)
+  maxHeightM    Decimal?  @map("max_height_m") @db.Decimal(10, 2)
+  maxWeightKg   Decimal?  @map("max_weight_kg") @db.Decimal(10, 2)
+  status        String    @default("FREE")
+  type          String    @default("NORMAL")
+  multiSku      Boolean   @default(true) @map("multi_sku")
+  coordX        Decimal?  @map("coord_x") @db.Decimal(10, 2)
+  coordY        Decimal?  @map("coord_y") @db.Decimal(10, 2)
+  coordZ        Decimal?  @map("coord_z") @db.Decimal(10, 2)
+  blockedReason String?   @map("blocked_reason")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  level         Level          @relation(fields: [levelId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  handlingUnits HandlingUnit[]
+
+  @@unique([warehouseId, code])
+  @@index([companyId])
+  @@map("locations")
+}
+
+// ---------------------------------------------------------------------------
+// Items & stock (basic MVP — lots/handling units extended in later iterations)
+// ---------------------------------------------------------------------------
+
+model Item {
+  id               String    @id @default(cuid())
+  companyId        String    @map("company_id")
+  sku              String
+  ean              String?
+  supplierCode     String?   @map("supplier_code")
+  name             String
+  description      String?
+  family           String?
+  subfamily        String?
+  brand            String?
+  lengthCm         Decimal?  @map("length_cm") @db.Decimal(10, 2)
+  widthCm          Decimal?  @map("width_cm") @db.Decimal(10, 2)
+  heightCm         Decimal?  @map("height_cm") @db.Decimal(10, 2)
+  weightKg         Decimal?  @map("weight_kg") @db.Decimal(10, 3)
+  baseUnit         String    @default("UNIT") @map("base_unit")
+  stackable        Boolean   @default(true)
+  maxStack         Int?      @map("max_stack")
+  hazardous        Boolean   @default(false)
+  adrClass         String?   @map("adr_class")
+  lotControlled    Boolean   @default(false) @map("lot_controlled")
+  expiryControlled Boolean   @default(false) @map("expiry_controlled")
+  serialControlled Boolean   @default(false) @map("serial_controlled")
+  pickingPolicy    String    @default("FIFO") @map("picking_policy")
+  minStock         Decimal?  @map("min_stock") @db.Decimal(14, 3)
+  maxStock         Decimal?  @map("max_stock") @db.Decimal(14, 3)
+  imageUrl         String?   @map("image_url")
+  active           Boolean   @default(true)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lots          Lot[]
+  stock         Stock[]
+  serialNumbers SerialNumber[]
+
+  @@unique([companyId, sku])
+  @@index([companyId])
+  @@map("items")
+}
+
+model Lot {
+  id              String    @id @default(cuid())
+  companyId       String    @map("company_id")
+  itemId          String    @map("item_id")
+  lotNumber       String    @map("lot_number")
+  manufactureDate DateTime? @map("manufacture_date")
+  expiryDate      DateTime? @map("expiry_date")
+  originCountry   String?   @map("origin_country")
+  status          String    @default("ACTIVE")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  item  Item    @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock Stock[]
+
+  @@unique([itemId, lotNumber])
+  @@index([companyId])
+  @@map("lots")
+}
+
+// Serial-controlled items are tracked individually rather than as a fungible
+// quantity: each unit gets its own SerialNumber row with its own lifecycle
+// (in stock, reserved, shipped, returned, scrapped), distinct from Lot which
+// groups interchangeable units.
+model SerialNumber {
+  id           String   @id @default(cuid())
+  companyId    String   @map("company_id")
+  itemId       String   @map("item_id")
+  serialNumber String   @map("serial_number")
+  status       String   @default("IN_STOCK")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  item  Item    @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock Stock[]
+
+  @@unique([itemId, serialNumber])
+  @@index([companyId])
+  @@map("serial_numbers")
+}
+
+// ---------------------------------------------------------------------------
+// Handling units (containers): a pallet/box/container is the entity that
+// occupies a location. Items never sit directly in a location — they are
+// always inside a handling unit, which in turn may or may not be assigned
+// to a location (e.g. while in transit or waiting at receiving).
+// ---------------------------------------------------------------------------
+
+model HandlingUnit {
+  id          String    @id @default(cuid())
+  companyId   String    @map("company_id")
+  warehouseId String    @map("warehouse_id")
+  locationId  String?   @map("location_id")
+  code        String
+  type        String    @default("PALLET")
+  status      String    @default("ACTIVE")
+  weightKg    Decimal?  @map("weight_kg") @db.Decimal(10, 2)
+  lengthCm    Decimal?  @map("length_cm") @db.Decimal(10, 2)
+  widthCm     Decimal?  @map("width_cm") @db.Decimal(10, 2)
+  heightCm    Decimal?  @map("height_cm") @db.Decimal(10, 2)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  location  Location? @relation(fields: [locationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock     Stock[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([warehouseId])
+  @@index([locationId])
+  @@map("handling_units")
+}
+
+model Stock {
+  id             String   @id @default(cuid())
+  companyId      String   @map("company_id")
+  handlingUnitId String   @map("handling_unit_id")
+  itemId         String   @map("item_id")
+  lotId          String?  @map("lot_id")
+  serialNumberId String?  @map("serial_number_id")
+  quantity       Decimal  @default(0) @db.Decimal(14, 3)
+  reservedQty    Decimal  @default(0) @map("reserved_qty") @db.Decimal(14, 3)
+  blockedQty     Decimal  @default(0) @map("blocked_qty") @db.Decimal(14, 3)
+  quarantineQty  Decimal  @default(0) @map("quarantine_qty") @db.Decimal(14, 3)
+  unit           String   @default("UNIT")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  handlingUnit HandlingUnit  @relation(fields: [handlingUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  item         Item          @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lot          Lot?          @relation(fields: [lotId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  serialNumber SerialNumber? @relation(fields: [serialNumberId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Uniqueness of (handlingUnit, item, lot) for non-serialized stock and of
+  // (serialNumberId) for serialized stock is enforced at the application
+  // layer — SQL Server's `db push` workflow (no shadow DB available on this
+  // Azure SQL plan) does not emit the filtered/partial unique indexes needed
+  // to allow multiple NULLs in a nullable unique column or composite key.
+  @@index([handlingUnitId, itemId, lotId])
+  @@index([serialNumberId])
+  @@index([companyId])
+  @@map("stock")
+}
