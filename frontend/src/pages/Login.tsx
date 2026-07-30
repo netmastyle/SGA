@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { apiClient } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 
 export default function Login() {
@@ -17,13 +18,13 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      const res = await axios.post('/api/v1/auth/login', { email, password });
+      const res = await apiClient.post('/auth/login', { email, password });
       const { accessToken, refreshToken } = res.data.data;
       setTokens(accessToken, refreshToken);
       navigate('/');
     } catch (err) {
       const message = axios.isAxiosError(err)
-        ? err.response?.data?.error?.message ?? 'Error al iniciar sesión'
+        ? (err as any).response?.data?.error?.message ?? 'Error al iniciar sesión'
         : 'Error al iniciar sesión';
       setError(Array.isArray(message) ? message.join(', ') : message);
     } finally {
