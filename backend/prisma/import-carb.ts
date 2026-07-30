@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PickingPolicy, PrismaClient, SerialNumberStatus } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -132,7 +132,7 @@ async function main() {
         name: item.name,
         baseUnit: 'UNIT',
         serialControlled: true,
-        pickingPolicy: 'MANUAL',
+        pickingPolicy: 'MANUAL' as PickingPolicy,
       },
     });
     itemIdByRef.set(item.ref, created.id);
@@ -164,7 +164,7 @@ async function main() {
       companyId: company.id,
       itemId: itemIdByRef.get(row.ref)!,
       serialNumber: row.serial,
-      status: row.blocked ? 'BLOCKED' : 'IN_STOCK',
+      status: (row.blocked ? 'BLOCKED' : 'IN_STOCK') as SerialNumberStatus,
     }));
     await prisma.serialNumber.createMany({ data: serialData });
 

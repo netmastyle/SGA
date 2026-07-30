@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, SerialNumberStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { buildPaginatedResult, paginationArgs } from '../common/paginate';
@@ -85,10 +86,10 @@ export class SerialNumbersService {
     if (query.handlingUnitId) stockFilter.handlingUnitId = query.handlingUnitId;
     if (query.warehouseId) stockFilter.handlingUnit = { warehouseId: query.warehouseId };
 
-    const where = {
+    const where: Prisma.SerialNumberWhereInput = {
       companyId: user.companyId,
       ...(query.itemId ? { itemId: query.itemId } : {}),
-      ...(query.status ? { status: query.status } : {}),
+      ...(query.status ? { status: query.status as SerialNumberStatus } : {}),
       ...(query.search ? { serialNumber: { contains: query.search } } : {}),
       ...(Object.keys(stockFilter).length ? { stock: { some: stockFilter } } : {}),
     };
@@ -126,7 +127,7 @@ export class SerialNumbersService {
       }
       return tx.serialNumber.update({
         where: { id },
-        data: { status: dto.status },
+        data: { status: dto.status as SerialNumberStatus },
         include: { item: true, stock: { include: STOCK_INCLUDE } },
       });
     });

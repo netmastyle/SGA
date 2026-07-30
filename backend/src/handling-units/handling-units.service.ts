@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { HandlingUnitStatus, HandlingUnitType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { buildPaginatedResult, paginationArgs } from '../common/paginate';
@@ -49,7 +50,7 @@ export class HandlingUnitsService {
         warehouseId: dto.warehouseId,
         locationId: dto.locationId,
         code: dto.code,
-        type: dto.type ?? 'PALLET',
+        type: (dto.type ?? 'PALLET') as HandlingUnitType,
         weightKg: dto.weightKg,
         lengthCm: dto.lengthCm,
         widthCm: dto.widthCm,
@@ -60,13 +61,13 @@ export class HandlingUnitsService {
 
   async findAll(user: AuthenticatedUser, query: HandlingUnitQueryDto) {
     const { skip, take, page, pageSize } = paginationArgs(query);
-    const where = {
+    const where: Prisma.HandlingUnitWhereInput = {
       companyId: user.companyId,
       deletedAt: null,
       ...(query.warehouseId ? { warehouseId: query.warehouseId } : {}),
       ...(query.locationId ? { locationId: query.locationId } : {}),
-      ...(query.status ? { status: query.status } : {}),
-      ...(query.type ? { type: query.type } : {}),
+      ...(query.status ? { status: query.status as HandlingUnitStatus } : {}),
+      ...(query.type ? { type: query.type as HandlingUnitType } : {}),
       ...(query.search ? { code: { contains: query.search } } : {}),
     };
     const [items, total] = await Promise.all([
@@ -98,7 +99,10 @@ export class HandlingUnitsService {
 
   async update(user: AuthenticatedUser, id: string, dto: UpdateHandlingUnitDto) {
     await this.findOne(user, id);
-    return this.prisma.handlingUnit.update({ where: { id }, data: dto });
+    return this.prisma.handlingUnit.update({
+      where: { id },
+      data: dto as Prisma.HandlingUnitUncheckedUpdateInput,
+    });
   }
 
   async move(user: AuthenticatedUser, id: string, dto: MoveHandlingUnitDto) {
