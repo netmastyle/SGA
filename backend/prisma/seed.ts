@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PERMISSIONS, SYSTEM_ROLES } from '../src/common/enums';
 
@@ -338,7 +338,7 @@ async function main() {
     const item = await prisma.item.upsert({
       where: { companyId_sku: { companyId: company.id, sku: def.sku } },
       update: {},
-      create: { ...def, companyId: company.id },
+      create: { ...def, companyId: company.id } as Prisma.ItemUncheckedCreateInput,
     });
     items.push(item);
   }
@@ -418,7 +418,7 @@ async function main() {
     }
     await prisma.location.update({
       where: { id: location.id },
-      data: { status: locationStatus, blockedReason: blockedReason ?? null },
+      data: { status: locationStatus, blockedReason: blockedReason ?? null } as Prisma.LocationUncheckedUpdateInput,
     });
   }
 

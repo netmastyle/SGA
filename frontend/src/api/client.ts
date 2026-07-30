@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/auth.store';
 
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
+
 export const apiClient = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE,
 });
 
 apiClient.interceptors.request.use((config) => {
@@ -33,7 +35,7 @@ apiClient.interceptors.response.use(
       try {
         if (!refreshPromise) {
           refreshPromise = axios
-            .post('/api/v1/auth/refresh', { refreshToken })
+            .post(`${API_BASE}/auth/refresh`, { refreshToken })
             .then((res) => {
               const { accessToken, refreshToken: newRefreshToken } = res.data.data;
               setTokens(accessToken, newRefreshToken);

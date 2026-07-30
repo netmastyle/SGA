@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
@@ -15,7 +16,9 @@ export class ItemsService {
     if (existing) {
       throw new BadRequestException('Ya existe un artículo con ese SKU');
     }
-    return this.prisma.item.create({ data: { ...dto, companyId: user.companyId } });
+    return this.prisma.item.create({
+      data: { ...dto, companyId: user.companyId } as Prisma.ItemUncheckedCreateInput,
+    });
   }
 
   async findAll(user: AuthenticatedUser, query: PaginationQueryDto) {
@@ -49,7 +52,7 @@ export class ItemsService {
 
   async update(user: AuthenticatedUser, id: string, dto: UpdateItemDto) {
     await this.findOne(user, id);
-    return this.prisma.item.update({ where: { id }, data: dto });
+    return this.prisma.item.update({ where: { id }, data: dto as Prisma.ItemUncheckedUpdateInput });
   }
 
   async remove(user: AuthenticatedUser, id: string) {

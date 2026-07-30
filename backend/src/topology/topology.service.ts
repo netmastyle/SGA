@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import {
@@ -71,7 +72,7 @@ export class TopologyService {
   async createZone(user: AuthenticatedUser, warehouseId: string, dto: CreateZoneDto) {
     await this.assertWarehouse(user, warehouseId);
     return this.prisma.zone.create({
-      data: { ...dto, warehouseId, companyId: user.companyId },
+      data: { ...dto, warehouseId, companyId: user.companyId } as Prisma.ZoneUncheckedCreateInput,
     });
   }
 
@@ -88,7 +89,10 @@ export class TopologyService {
   async updateZone(user: AuthenticatedUser, warehouseId: string, zoneId: string, dto: UpdateZoneDto) {
     await this.assertWarehouse(user, warehouseId);
     await this.assertZone(user, warehouseId, zoneId);
-    return this.prisma.zone.update({ where: { id: zoneId }, data: dto });
+    return this.prisma.zone.update({
+      where: { id: zoneId },
+      data: dto as Prisma.ZoneUncheckedUpdateInput,
+    });
   }
 
   // --------------------------------------------------------------- Aisles --
@@ -129,7 +133,9 @@ export class TopologyService {
     await this.assertZone(user, warehouseId, zoneId);
     await this.assertAisle(user, zoneId, aisleId);
 
-    return this.prisma.rack.create({ data: { ...dto, aisleId, companyId: user.companyId } });
+    return this.prisma.rack.create({
+      data: { ...dto, aisleId, companyId: user.companyId } as Prisma.RackUncheckedCreateInput,
+    });
   }
 
   async listRacks(user: AuthenticatedUser, warehouseId: string, zoneId: string, aisleId: string) {
@@ -151,7 +157,10 @@ export class TopologyService {
     await this.assertZone(user, warehouseId, zoneId);
     await this.assertAisle(user, zoneId, aisleId);
     await this.assertRack(user, aisleId, rackId);
-    return this.prisma.rack.update({ where: { id: rackId }, data: dto });
+    return this.prisma.rack.update({
+      where: { id: rackId },
+      data: dto as Prisma.RackUncheckedUpdateInput,
+    });
   }
 
   // --------------------------------------------------------------- Levels --

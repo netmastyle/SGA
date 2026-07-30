@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
@@ -17,7 +18,9 @@ export class WarehousesService {
     if (existing) {
       throw new BadRequestException('Ya existe un almacén con ese código');
     }
-    return this.prisma.warehouse.create({ data: { ...dto, companyId: user.companyId } });
+    return this.prisma.warehouse.create({
+      data: { ...dto, companyId: user.companyId } as Prisma.WarehouseUncheckedCreateInput,
+    });
   }
 
   async findAll(user: AuthenticatedUser, query: PaginationQueryDto) {
@@ -51,7 +54,10 @@ export class WarehousesService {
 
   async update(user: AuthenticatedUser, id: string, dto: UpdateWarehouseDto) {
     await this.findOne(user, id);
-    return this.prisma.warehouse.update({ where: { id }, data: dto });
+    return this.prisma.warehouse.update({
+      where: { id },
+      data: dto as Prisma.WarehouseUncheckedUpdateInput,
+    });
   }
 
   async remove(user: AuthenticatedUser, id: string) {
