@@ -327,7 +327,7 @@ async function main() {
       baseUnit: 'UNIT',
       weightKg: 250,
       serialControlled: true,
-      pickingPolicy: 'MANUAL' as const,
+      pickingPolicy: 'FIFO' as const,
       minStock: 1,
       maxStock: 20,
     },
