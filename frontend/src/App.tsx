@@ -8,6 +8,8 @@ import Items from './pages/Items';
 import Inventory from './pages/Inventory';
 import Containers from './pages/Containers';
 import SerialNumbers from './pages/SerialNumbers';
+import UserManualPage from './pages/UserManualPage';
+import APIReferencePage from './pages/APIReferencePage';
 import Layout from './components/Layout';
 import ProtectedRoute from './router/ProtectedRoute';
 
@@ -26,6 +28,8 @@ function App() {
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/containers" element={<Containers />} />
             <Route path="/serial-numbers" element={<SerialNumbers />} />
+            <Route path="/docs/manual" element={<UserManualPage />} />
+            <Route path="/docs/api" element={<APIReferencePage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

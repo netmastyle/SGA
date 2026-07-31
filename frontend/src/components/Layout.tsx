@@ -12,8 +12,10 @@ const navItems = [
 
 export default function Layout() {
   const user = useAuthStore((s) => s.user);
+  const hasPermission = useAuthStore((s) => s.hasPermission);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+  const isAdmin = hasPermission('role.manage');
 
   function handleLogout() {
     logout();
@@ -53,6 +55,41 @@ export default function Layout() {
           ))}
         </nav>
         <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 16 }}>
+          <p style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px 4px' }}>
+            Documentación
+          </p>
+          <NavLink
+            to="/docs/manual"
+            style={({ isActive }) => ({
+              display: 'block',
+              padding: '8px 12px',
+              borderRadius: 8,
+              fontSize: 13,
+              color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)',
+              background: isActive ? 'var(--color-bg-card)' : 'transparent',
+              fontWeight: isActive ? 600 : 400,
+              marginBottom: 2,
+            })}
+          >
+            📖 Manual de usuario
+          </NavLink>
+          {isAdmin && (
+            <NavLink
+              to="/docs/api"
+              style={({ isActive }) => ({
+                display: 'block',
+                padding: '8px 12px',
+                borderRadius: 8,
+                fontSize: 13,
+                color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)',
+                background: isActive ? 'var(--color-bg-card)' : 'transparent',
+                fontWeight: isActive ? 600 : 400,
+                marginBottom: 12,
+              })}
+            >
+              🔌 Referencia API
+            </NavLink>
+          )}
           <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 8 }}>
             {user?.email}
           </div>
