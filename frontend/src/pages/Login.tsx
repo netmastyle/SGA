@@ -6,8 +6,9 @@ import { apiClient } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 
 const DEMO_USERS = [
-  { label: 'Administrador', email: 'admin@sga-demo.local', password: 'Admin123!' },
-  { label: 'Auditor', email: 'auditor@sga-demo.local', password: 'Auditor123!' },
+  { label: 'Responsable de almacén', email: 'responsable@sga-demo.local', password: 'Manager123!' },
+  { label: 'Operario', email: 'operario@sga-demo.local', password: 'Operario123!' },
+  { label: 'Auditor / Gerencia', email: 'auditor@sga-demo.local', password: 'Auditor123!' },
 ];
 
 export default function Login() {

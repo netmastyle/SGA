@@ -114,6 +114,34 @@ async function main() {
     },
   });
 
+  const managerHash = await bcrypt.hash('Manager123!', 10);
+  await prisma.user.upsert({
+    where: { companyId_email: { companyId: company.id, email: 'responsable@sga-demo.local' } },
+    update: {},
+    create: {
+      companyId: company.id,
+      email: 'responsable@sga-demo.local',
+      passwordHash: managerHash,
+      name: 'Responsable Demo',
+      roleId: managerRole.id,
+      status: 'ACTIVE',
+    },
+  });
+
+  const operatorHash = await bcrypt.hash('Operario123!', 10);
+  await prisma.user.upsert({
+    where: { companyId_email: { companyId: company.id, email: 'operario@sga-demo.local' } },
+    update: {},
+    create: {
+      companyId: company.id,
+      email: 'operario@sga-demo.local',
+      passwordHash: operatorHash,
+      name: 'Operario Demo',
+      roleId: operatorRole.id,
+      status: 'ACTIVE',
+    },
+  });
+
   console.log('Seeding demo warehouse topology...');
   const warehouse = await prisma.warehouse.upsert({
     where: { companyId_code: { companyId: company.id, code: 'ALM01' } },
