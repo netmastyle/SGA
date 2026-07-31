@@ -5,6 +5,11 @@ import axios from 'axios';
 import { apiClient } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 
+const DEMO_USERS = [
+  { label: 'Administrador', email: 'admin@sga-demo.local', password: 'Admin123!' },
+  { label: 'Auditor', email: 'auditor@sga-demo.local', password: 'Auditor123!' },
+];
+
 export default function Login() {
   const [email, setEmail] = useState('admin@sga-demo.local');
   const [password, setPassword] = useState('');
@@ -86,6 +91,38 @@ export default function Login() {
         <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
           {loading ? 'Entrando…' : 'Iniciar sesión'}
         </button>
+
+        <div style={{ marginTop: 24, borderTop: '1px solid var(--color-border)', paddingTop: 16 }}>
+          <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Usuarios de prueba
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {DEMO_USERS.map((u) => (
+              <button
+                key={u.email}
+                type="button"
+                onClick={() => { setEmail(u.email); setPassword(u.password); }}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 6,
+                  padding: '6px 10px',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-muted)',
+                  fontSize: 12,
+                  textAlign: 'left',
+                  width: '100%',
+                }}
+              >
+                <span style={{ color: 'var(--color-text)', fontWeight: 500 }}>{u.label}</span>
+                <span>{u.email}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </form>
     </div>
   );

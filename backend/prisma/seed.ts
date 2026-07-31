@@ -85,7 +85,7 @@ async function main() {
     data: allPermissions.filter((p) => auditorCodes.includes(p.code)).map((p) => ({ roleId: auditorRole.id, permissionId: p.id })),
   });
 
-  console.log('Seeding admin user...');
+  console.log('Seeding demo users...');
   const passwordHash = await bcrypt.hash('Admin123!', 10);
   await prisma.user.upsert({
     where: { companyId_email: { companyId: company.id, email: 'admin@sga-demo.local' } },
@@ -96,6 +96,20 @@ async function main() {
       passwordHash,
       name: 'Administrador Demo',
       roleId: adminRole.id,
+      status: 'ACTIVE',
+    },
+  });
+
+  const auditorHash = await bcrypt.hash('Auditor123!', 10);
+  await prisma.user.upsert({
+    where: { companyId_email: { companyId: company.id, email: 'auditor@sga-demo.local' } },
+    update: {},
+    create: {
+      companyId: company.id,
+      email: 'auditor@sga-demo.local',
+      passwordHash: auditorHash,
+      name: 'Auditor Demo',
+      roleId: auditorRole.id,
       status: 'ACTIVE',
     },
   });
