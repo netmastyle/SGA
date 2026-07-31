@@ -23,7 +23,7 @@ export default function Layout() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <aside
         style={{
           width: 220,
@@ -32,6 +32,8 @@ export default function Layout() {
           padding: '20px 16px',
           display: 'flex',
           flexDirection: 'column',
+          overflowY: 'auto',
+          flexShrink: 0,
         }}
       >
         <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 32, padding: '0 8px' }}>
@@ -98,7 +100,7 @@ export default function Layout() {
           </button>
         </div>
       </aside>
-      <main style={{ flex: 1, padding: 32, overflow: 'auto' }}>
+      <main style={{ flex: 1, padding: 32, overflow: 'auto', minWidth: 0, height: '100%' }}>
         <Outlet />
       </main>
     </div>

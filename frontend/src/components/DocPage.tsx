@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
@@ -36,14 +36,18 @@ interface DocPageProps {
 }
 
 export default function DocPage({ title, contentUrl }: DocPageProps) {
-  const [content, setContent] = useState<string>('');
+  const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [headings, setHeadings] = useState<Heading[]>([]);
-  const [activeId, setActiveId] = useState<string>('');
+  const [activeId, setActiveId] = useState('');
+  const [search, setSearch] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    setLoading(true);
+    setSearch('');
+    setActiveId('');
     fetch(contentUrl)
       .then((r) => r.text())
       .then((text) => {
@@ -51,76 +55,145 @@ export default function DocPage({ title, contentUrl }: DocPageProps) {
         setHeadings(extractHeadings(text));
         setLoading(false);
       })
-      .catch(() => { setContent('Error al cargar la documentación.'); setLoading(false); });
+      .catch(() => {
+        setContent('Error al cargar la documentación.');
+        setLoading(false);
+      });
   }, [contentUrl]);
 
-  // Track active heading on scroll
+  const filteredHeadings = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return headings;
+    return headings.filter((h) => h.text.toLowerCase().includes(q));
+  }, [headings, search]);
+
   useEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
+    const panel = contentRef.current;
+    if (!panel || loading) return;
+
     const onScroll = () => {
-      const anchors = el.querySelectorAll<HTMLElement>('[data-doc-id]');
+      const anchors = panel.querySelectorAll<HTMLElement>('[data-doc-id]');
+      const panelTop = panel.getBoundingClientRect().top;
       let current = '';
       anchors.forEach((node) => {
-        if (node.getBoundingClientRect().top <= 120) current = node.getAttribute('data-doc-id') ?? '';
+        if (node.getBoundingClientRect().top - panelTop <= 24) {
+          current = node.getAttribute('data-doc-id') ?? '';
+        }
       });
       setActiveId(current);
     };
-    const main = document.querySelector('main') ?? window;
-    main.addEventListener('scroll', onScroll, { passive: true });
-    return () => main.removeEventListener('scroll', onScroll);
-  }, [loading]);
+
+    panel.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => panel.removeEventListener('scroll', onScroll);
+  }, [loading, content]);
 
   function scrollTo(id: string) {
-    const el = contentRef.current?.querySelector(`[data-doc-id="${id}"]`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const panel = contentRef.current;
+    const el = panel?.querySelector<HTMLElement>(`[data-doc-id="${id}"]`);
+    if (panel && el) {
+      panel.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
+      setActiveId(id);
     }
   }
 
-  // Custom renderers — add id anchors to headings
   const components: Components = {
     h1: ({ children }) => {
       const id = slugify(String(children));
-      return <h1 data-doc-id={id} style={{ scrollMarginTop: 80 }}>{children}</h1>;
+      return (
+        <h1 data-doc-id={id} style={{ scrollMarginTop: 16 }}>
+          {children}
+        </h1>
+      );
     },
     h2: ({ children }) => {
       const id = slugify(String(children));
-      return <h2 data-doc-id={id} style={{ scrollMarginTop: 80 }}>{children}</h2>;
+      return (
+        <h2 data-doc-id={id} style={{ scrollMarginTop: 16 }}>
+          {children}
+        </h2>
+      );
     },
     h3: ({ children }) => {
       const id = slugify(String(children));
-      return <h3 data-doc-id={id} style={{ scrollMarginTop: 80 }}>{children}</h3>;
+      return (
+        <h3 data-doc-id={id} style={{ scrollMarginTop: 16 }}>
+          {children}
+        </h3>
+      );
     },
   };
 
   return (
-    <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', maxWidth: 1200, margin: '0 auto' }}>
+    <div
+      style={{
+        display: 'flex',
+        gap: 0,
+        height: 'calc(100vh - 64px)',
+        margin: -32,
+        overflow: 'hidden',
+      }}
+    >
+      {/* TOC — fixed panel, does not scroll with content */}
+      <aside
+        style={{
+          width: 260,
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          borderRight: '1px solid var(--color-border)',
+          background: 'var(--color-bg-elevated)',
+          height: '100%',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ padding: '16px 14px 12px', flexShrink: 0 }}>
+          <button
+            onClick={() => navigate(-1)}
+            className="btn"
+            style={{ padding: '6px 14px', fontSize: 13, width: '100%', marginBottom: 14 }}
+          >
+            ← Volver
+          </button>
 
-      {/* TOC sidebar */}
-      <aside style={{
-        width: 220,
-        flexShrink: 0,
-        position: 'sticky',
-        top: 0,
-        maxHeight: 'calc(100vh - 64px)',
-        overflowY: 'auto',
-        paddingRight: 8,
-      }}>
-        <button
-          onClick={() => navigate(-1)}
-          className="btn"
-          style={{ padding: '6px 14px', fontSize: 13, width: '100%', marginBottom: 16 }}
+          <p
+            style={{
+              fontSize: 11,
+              color: 'var(--color-text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: 8,
+            }}
+          >
+            Contenido
+          </p>
+
+          <input
+            className="input"
+            type="search"
+            placeholder="Buscar sección…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: '100%', fontSize: 13, padding: '7px 10px' }}
+          />
+        </div>
+
+        <nav
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            padding: '0 10px 16px',
+            overflowY: 'auto',
+            flex: 1,
+          }}
         >
-          ← Volver
-        </button>
-
-        <p style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-          Contenido
-        </p>
-
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {headings.map((h) => (
+          {filteredHeadings.length === 0 && !loading && (
+            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', padding: '8px 4px' }}>
+              Sin resultados
+            </p>
+          )}
+          {filteredHeadings.map((h) => (
             <button
               key={h.id + h.text}
               onClick={() => scrollTo(h.id)}
@@ -130,7 +203,7 @@ export default function DocPage({ title, contentUrl }: DocPageProps) {
                 border: 'none',
                 borderLeft: `2px solid ${activeId === h.id ? 'var(--color-primary)' : 'transparent'}`,
                 borderRadius: '0 6px 6px 0',
-                padding: `4px 8px 4px ${h.level === 1 ? 8 : h.level === 2 ? 16 : 24}px`,
+                padding: `5px 8px 5px ${h.level === 1 ? 8 : h.level === 2 ? 16 : 24}px`,
                 cursor: 'pointer',
                 fontSize: h.level === 1 ? 13 : 12,
                 fontWeight: h.level === 1 ? 600 : activeId === h.id ? 500 : 400,
@@ -145,19 +218,37 @@ export default function DocPage({ title, contentUrl }: DocPageProps) {
         </nav>
       </aside>
 
-      {/* Main content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <h1 style={{ fontSize: 22, marginBottom: 24, paddingBottom: 12, borderBottom: '1px solid var(--color-border)' }}>
-          {title}
-        </h1>
+      {/* Content — scrolls independently */}
+      <div
+        ref={contentRef}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          height: '100%',
+          overflowY: 'auto',
+          padding: '28px 40px 64px',
+        }}
+      >
+        <div style={{ maxWidth: 860 }}>
+          <h1
+            style={{
+              fontSize: 22,
+              marginBottom: 24,
+              paddingBottom: 12,
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            {title}
+          </h1>
 
-        {loading ? (
-          <p style={{ color: 'var(--color-text-muted)' }}>Cargando…</p>
-        ) : (
-          <div ref={contentRef} className="doc-content">
-            <ReactMarkdown components={components}>{content}</ReactMarkdown>
-          </div>
-        )}
+          {loading ? (
+            <p style={{ color: 'var(--color-text-muted)' }}>Cargando…</p>
+          ) : (
+            <div className="doc-content">
+              <ReactMarkdown components={components}>{content}</ReactMarkdown>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
