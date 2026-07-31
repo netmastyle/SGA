@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "type": "prompt",
+        "prompt": "Analiza las herramientas usadas en esta sesión (listadas en $ARGUMENTS). Si se modificaron archivos de código fuente (en backend/src/, backend/prisma/, frontend/src/, o cualquier archivo .ts/.tsx/.json que NO esté dentro de docs/), responde ÚNICAMENTE con este JSON exacto:\n{\"followup_message\": \"Revisa los cambios de código realizados en esta sesión y actualiza los tres archivos de documentación del proyecto para reflejar dichos cambios: docs/Technical_Documentation.md (documentación técnica para desarrolladores), docs/User_Manual.md (manual de usuario final) y docs/API_Reference.md (referencia completa de la API REST). Solo actualiza las secciones afectadas por los cambios. No actualices la documentación si los únicos cambios fueron en archivos de docs/.\"}\n\nSi en esta sesión SOLO se modificaron archivos de docs/ o no hubo cambios de código, responde con: {}\n\nResponde SOLO con el JSON, sin texto adicional.",
+        "timeout": 30,
+        "loop_limit": 1
+      }
+    ]
+  }
+}
