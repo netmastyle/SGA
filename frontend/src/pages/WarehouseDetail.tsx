@@ -177,15 +177,19 @@ export default function WarehouseDetail() {
   useEffect(() => {
     if (!id || tab !== 'locations') return;
     setLocationsLoading(true);
+    // Locations and stock are loaded independently so a stock failure
+    // (e.g. validation / permissions) does not hide existing locations.
+    // pageSize max allowed by the API is 200.
     Promise.all([
-      apiClient.get<ApiResponse<Location[]>>(`/warehouses/${id}/locations`),
-      apiClient.get<ApiResponse<StockLine[]>>('/stock', { params: { warehouseId: id, pageSize: 500 } }),
-    ])
-      .then(([locRes, stockRes]) => {
-        setAllLocations(locRes.data.data);
-        setStock(stockRes.data.data);
-      })
-      .finally(() => setLocationsLoading(false));
+      apiClient
+        .get<ApiResponse<Location[]>>(`/warehouses/${id}/locations`)
+        .then((res) => setAllLocations(res.data.data ?? []))
+        .catch(() => setAllLocations([])),
+      apiClient
+        .get<ApiResponse<StockLine[]>>('/stock', { params: { warehouseId: id, pageSize: 200 } })
+        .then((res) => setStock(Array.isArray(res.data.data) ? res.data.data : []))
+        .catch(() => setStock([])),
+    ]).finally(() => setLocationsLoading(false));
   }, [id, tab]);
 
   const stockByLocation = useMemo(() => {
