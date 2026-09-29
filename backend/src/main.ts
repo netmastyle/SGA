@@ -42,7 +42,7 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('SGA / WMS API')
     .setDescription('API REST del Sistema de Gestión de Almacenes')
-    .setVersion('1.0')
+    .setVersion(process.env.npm_package_version ?? '1.0.1')
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);

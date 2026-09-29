@@ -111,6 +111,7 @@ export default function WarehouseDetail() {
   const [allLocations, setAllLocations] = useState<Location[]>([]);
   const [stock, setStock] = useState<StockLine[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(false);
+  const [locationsError, setLocationsError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   function reloadZones() {
@@ -177,14 +178,21 @@ export default function WarehouseDetail() {
   useEffect(() => {
     if (!id || tab !== 'locations') return;
     setLocationsLoading(true);
+    setLocationsError(null);
     // Locations and stock are loaded independently so a stock failure
     // (e.g. validation / permissions) does not hide existing locations.
     // pageSize max allowed by the API is 200.
     Promise.all([
       apiClient
         .get<ApiResponse<Location[]>>(`/warehouses/${id}/locations`)
-        .then((res) => setAllLocations(res.data.data ?? []))
-        .catch(() => setAllLocations([])),
+        .then((res) => {
+          setAllLocations(res.data.data ?? []);
+        })
+        .catch((err: any) => {
+          setAllLocations([]);
+          const message = err?.response?.data?.error?.message ?? err?.message ?? 'Error al cargar ubicaciones';
+          setLocationsError(Array.isArray(message) ? message.join(', ') : String(message));
+        }),
       apiClient
         .get<ApiResponse<StockLine[]>>('/stock', { params: { warehouseId: id, pageSize: 200 } })
         .then((res) => setStock(Array.isArray(res.data.data) ? res.data.data : []))
@@ -621,6 +629,19 @@ export default function WarehouseDetail() {
 
       {tab === 'locations' && (
         <div className="card" style={{ overflow: 'hidden' }}>
+          {locationsError && (
+            <div
+              style={{
+                color: 'var(--color-danger)',
+                fontSize: 13,
+                padding: '12px 16px',
+                background: 'rgba(239,68,68,0.1)',
+                borderBottom: '1px solid var(--color-border)',
+              }}
+            >
+              {locationsError}
+            </div>
+          )}
           {locationsLoading ? (
             <div style={{ padding: 24, color: 'var(--color-text-muted)' }}>Cargando…</div>
           ) : (

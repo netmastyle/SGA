@@ -12,6 +12,7 @@ import { ItemsModule } from './items/items.module';
 import { StockModule } from './stock/stock.module';
 import { HandlingUnitsModule } from './handling-units/handling-units.module';
 import { SerialNumbersModule } from './serial-numbers/serial-numbers.module';
+import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 
@@ -29,6 +30,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     StockModule,
     HandlingUnitsModule,
     SerialNumbersModule,
+    HealthModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { apiClient } from '../api/client';
+import VersionInfo from '../components/VersionInfo';
 import { useAuthStore } from '../store/auth.store';
 
 const DEMO_USERS = [
@@ -124,6 +125,7 @@ export default function Login() {
             ))}
           </div>
         </div>
+        <VersionInfo />
       </form>
     </div>
   );

@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
+import VersionInfo from './VersionInfo';
 
 const navItems = [
   { to: '/', label: 'Dashboard' },
@@ -98,6 +99,7 @@ export default function Layout() {
           <button className="btn" style={{ width: '100%' }} onClick={handleLogout}>
             Cerrar sesión
           </button>
+          <VersionInfo compact />
         </div>
       </aside>
       <main style={{ flex: 1, padding: 32, overflow: 'auto', minWidth: 0, height: '100%' }}>
